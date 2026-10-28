@@ -12,21 +12,32 @@ import java.util.ArrayList;
 
 public class DatabaseManager {
 
-    private static final String DATABASE_URL =
+    private static final String DEFAULT_DATABASE_URL =
         "jdbc:sqlite:courseplanner.db";
+
+    private static String getDatabaseUrl() {
+        return System.getProperty(
+            "planner.database.url",
+            DEFAULT_DATABASE_URL
+        );
+    }
 
     public static Connection getConnection() throws SQLException {
         Connection connection =
-            DriverManager.getConnection(DATABASE_URL);
+            DriverManager.getConnection(getDatabaseUrl());
 
         try (Statement statement = connection.createStatement()) {
             statement.execute("PRAGMA foreign_keys = ON");
+        } catch (SQLException e) {
+            connection.close();
+            throw e;
         }
 
         return connection;
     }
 
     public static void initializeDatabase() {
+
         String coursesSQL = """
             CREATE TABLE IF NOT EXISTS courses (
                 course_code TEXT PRIMARY KEY,
@@ -51,6 +62,7 @@ public class DatabaseManager {
 
             statement.execute(coursesSQL);
             statement.execute(assignmentsSQL);
+
             System.out.println("Database initialized successfully!");
 
         } catch (SQLException e) {
@@ -61,6 +73,7 @@ public class DatabaseManager {
     }
 
     public static boolean addCourse(Course course) {
+
         String sql = """
             INSERT INTO courses (course_code, course_name)
             VALUES (?, ?)
@@ -84,6 +97,7 @@ public class DatabaseManager {
     }
 
     public static ArrayList<Course> loadCourses() {
+
         ArrayList<Course> courses = new ArrayList<>();
 
         String sql = """
@@ -114,6 +128,7 @@ public class DatabaseManager {
     }
 
     public static boolean addAssignment(Assignment assignment) {
+
         String sql = """
             INSERT INTO assignments
             (title, course_code, due_date, completed)
@@ -144,6 +159,7 @@ public class DatabaseManager {
     }
 
     public static ArrayList<Assignment> loadAssignments() {
+
         ArrayList<Assignment> assignments = new ArrayList<>();
 
         String sql = """
@@ -177,6 +193,7 @@ public class DatabaseManager {
     }
 
     public static boolean markAssignmentCompleted(int assignmentId) {
+
         String sql = """
             UPDATE assignments
             SET completed = 1
@@ -188,6 +205,7 @@ public class DatabaseManager {
                  connection.prepareStatement(sql)) {
 
             statement.setInt(1, assignmentId);
+
             return statement.executeUpdate() == 1;
 
         } catch (SQLException e) {
@@ -198,7 +216,6 @@ public class DatabaseManager {
         }
     }
 
-    // Update an assignment's title and due date
     public static boolean updateAssignment(
             int assignmentId, String newTitle, LocalDate newDueDate) {
 
@@ -226,8 +243,8 @@ public class DatabaseManager {
         }
     }
 
-    // Delete an assignment by its database ID
     public static boolean deleteAssignment(int assignmentId) {
+
         String sql = "DELETE FROM assignments WHERE id = ?";
 
         try (Connection connection = getConnection();
@@ -235,6 +252,7 @@ public class DatabaseManager {
                  connection.prepareStatement(sql)) {
 
             statement.setInt(1, assignmentId);
+
             return statement.executeUpdate() == 1;
 
         } catch (SQLException e) {
